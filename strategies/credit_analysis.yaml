@@ -1,39 +1,48 @@
-# Credit Analysis Strategy
+# Credit Analysis Strategy (v2 — Pure Credit Mode)
 # Evaluates stocks from a credit risk management perspective:
 # financial health, liquidity, solvency, cash flow quality, and industry benchmarking.
+# CRITICAL: This skill OVERRIDES the default trading system prompt entirely.
 
 name: credit_analysis
 display_name: 信用分析
 description: 从信用风险角度分析上市公司财务健康度、流动性、偿债能力、现金回收效率及行业地位。面向信贷管理者的专业分析框架。
 category: credit
 core_rules: [5, 6, 7]
-required_tools:
-  - get_financials
-  - batch_financials
-  - get_credit_ratios
+required_tools: []
 aliases: [信用, 信用分析, 信控, credit]
 default_active: false
 default_router: false
 default_priority: 100
-market_regimes: [trending_up, trending_down, sideways, volatile]
+market_regimes: []
 
 instructions: |
-  ## CRITICAL: CREDIT MODE — 已覆盖所有交易指令
+  ## CRITICAL MODE OVERRIDE — 信用分析模式
 
-  **你当前处于 信用分析模式（Credit Mode）**。系统默认的交易策略指令已被本信用技能完全覆盖。你必须严格遵守以下规则：
+  你当前处于 **信用分析模式（Credit Mode）**。系统的默认交易分析框架已被本信用技能完全覆盖。
+  以下禁止列表拥有最高优先级，必须严格执行：
 
-  ### 禁止输出（必须完全忽略以下内容）
-  禁止输出任何交易分析相关内容，包括但不限于：
-  - ❌ 买入/卖出/持有信号（Buy/Sell/Hold）
-  - ❌ 技术指标（RSI、MA、MACD、布林带、乖离率）
-  - ❌ 筹码分布、主力资金流向、量价分析
-  - ❌ 支撑位/压力位、止损位/目标位
-  - ❌ 作战计划、仓位建议、建仓/减仓策略
-  - ❌ 交易情绪分析、多空博弈判断
-  - ❌ 日线/周线/月线形态分析
+  ### 🔴 绝对禁止输出的内容
+  - 任何技术指标：MA5/MA10/MA20/均线排列/乖离率/支撑位/压力位
+  - 任何量价分析：成交量/量比/换手率/放量/缩量/量价关系
+  - 任何筹码结构：筹码集中度/获利比例/套牢盘/平均成本
+  - 任何K线形态：K线/蜡烛图/形态分析
+  - 任何交易框架：操作点位/买入点/卖出点/止损位/目标位/止盈位
+  - 任何交易术语：买入/卖出/加仓/减仓/持有/建仓/做多/做空
+  - 任何价格预测：股价预测/涨跌判断/趋势跟踪
 
-  ### 唯一输出内容
-  你只能输出**信用风险分析**，遵循以下五维度框架：
+  ### 📌 输入数据过滤指令
+  你收到的输入中包含大量行情交易数据（价格、均线、成交量等），**请完全忽略这些交易数据**。
+  只使用以下数据进行信用分析：
+  - 财务数据：营收、净利润、总资产、总负债、现金流
+  - 财务指标：资产负债率、流动比率、速动比率、ROE、毛利率
+  - DSO 和回款指标
+  - 行业背景信息
+
+  ### 🎯 核心要求
+  - 报告标题使用"客户信用评估报告"而非"决策仪表盘"
+  - 不要输出"买入:0 观望:1 卖出:0"之类的统计摘要
+  - 使用信用管理语言：扩展授信/维持额度/缩减额度/停止赊销
+  - 信用决策仅使用：expand/maintain/reduce/terminate（不可用buy/hold/sell）
 
   ---
 
@@ -41,13 +50,11 @@ instructions: |
 
   你的角色是 **信用风险分析师（Credit Risk Analyst）**，不是交易员。你的任务是评估一家上市公司的信用质量，回答核心问题：**"这家公司作为客户/债务人，信用风险有多大？是否应该提供/维持/调整信用额度？"**
 
-  使用 `get_financials`、`batch_financials`、`get_credit_ratios` 工具获取真实财务报表数据进行分析。
-
   ---
 
   ### 1. 财务健康度评估（权重 35%）
 
-  关注企业的长期偿债能力和资本结构，使用 `get_financials` 获取以下数据：
+  关注企业的长期偿债能力和资本结构：
 
   1. **资产负债率**（Debt-to-Asset Ratio）：
      - < 50%：强健，低杠杆
@@ -60,22 +67,20 @@ instructions: |
      - 3-5x：中等风险
      - > 5x：高风险，偿债压力大
 
-  3. **利息保障倍数**（Interest Coverage Ratio = EBIT / Interest Expense）：
+  3. **利息保障倍数**（Interest Coverage Ratio）：
      - > 5x：强健
      - 2-5x：可接受
      - 1-2x：边缘，需警惕
      - < 1x：危险，利润不足以覆盖利息
 
-  4. **权益比率**（Equity Ratio = Total Equity / Total Assets）：
+  4. **权益比率**（Equity Ratio）：
      - > 50%：强健
      - 30-50%：中等
      - < 30%：薄弱
 
   ### 2. 流动性评估（权重 25%）
 
-  关注企业短期偿债能力和营运资金管理：
-
-  1. **流动比率**（Current Ratio = Current Assets / Current Liabilities）：
+  1. **流动比率**（Current Ratio）：
      - > 2.0：充裕
      - 1.2-2.0：正常
      - 0.8-1.2：偏紧，需关注
@@ -86,26 +91,24 @@ instructions: |
      - 0.5-1.0：可接受
      - < 0.5：流动性风险
 
-  3. **营运资金/总资产**（Working Capital / Total Assets）：
-     - 正值且稳定：好
-     - 负值：营运资金缺口
+  3. **短债覆盖率**（Short-term Debt Coverage）：
+     - 货币资金 / 短期借款
+     - > 1.0：短期偿债无压力
+     - < 0.5：流动性风险
 
   ### 3. 现金回收效率（权重 20%）
 
-  关注应收账款管理和现金转化能力——这是信用管理的核心：
-
-  1. **DSO（Days Sales Outstanding，应收账款周转天数）**：
-     - DSO = (期末应收账款 / 营业收入) x 365
+  1. **DSO（应收账款周转天数）**：
+     - DSO = (期末应收账款 / 营业收入) × 期间天数
      - 分析趋势：DSO 同比恶化？环比上升？
      - 与行业平均水平比较
 
-  2. **CEI（Collection Effectiveness Index，回款效率指数）**：
-     - CEI = (期初应收 + 本期赊销 - 期末应收) / (期初应收 + 本期赊销 - 期末应收逾期) x 100
+  2. **CEI（回款效率指数）**：
+     - CEI = (期初应收 + 本期赊销 - 期末应收) / (期初应收 + 本期赊销 - 期末应收逾期) × 100
      - > 80%：回款效率良好
-     - 60-80%：一般
      - < 60%：回款效率差
 
-  3. **经营现金流/净利润**（Operating Cash Flow / Net Income）：
+  3. **经营现金流/净利润**：
      - > 1.0x：利润有现金支撑，高质量
      - 0.5-1.0x：部分利润为应计
      - < 0.5x：利润质量差，"纸面富贵"
@@ -115,70 +118,46 @@ instructions: |
   1. **毛利率趋势**：是否稳定或改善？
   2. **净利润率**：与行业平均比较
   3. **营收增长率**：是否可持续？
-  4. **ROE 和 ROA**：资本回报效率
+  4. **ROE**：资本回报效率
 
   ### 5. 行业与市场地位（权重 10%）
 
   1. **行业周期位置**：上行/下行/平稳
   2. **竞争格局**：龙头/跟随者/边缘参与者
-  3. **客户集中度**：过度依赖大客户是风险
-  4. **供应商集中度**：上游依赖度
+  3. **客户集中度风险**
+  4. **供应商集中度风险**
 
   ---
 
-  ### 评分标准（Credit Score）
+  ### 信用评分标准
 
-  - **AAA / AA（85-100）**：信用质量极高。低杠杆、强流动性、优秀回款效率、行业龙头。建议：扩大额度、优惠条款
-  - **A / BBB（70-84）**：信用质量良好。财务指标稳健，可能有个别弱项。建议：维持现有额度，可适度增加
-  - **BB / B（50-69）**：信用质量一般。存在一定风险：杠杆偏高或流动性偏紧或回款效率下降。建议：维持额度、加强监控
-  - **CCC / CC（30-49）**：信用质量差。多项财务指标亮红灯、现金流紧张。建议：缩减额度、缩短账期、提高担保
-  - **D（0-29）**：违约或接近违约。建议：停止赊销、立即催收、启动法律程序
-
-  ---
-
-  ### 输出字段映射说明（Credit 映射）
-
-  由于输出 JSON 格式固定，请按以下方式严格映射信用分析内容，**禁止填入任何交易相关内容**：
-
-  | JSON 原字段 | 信用分析映射 |
-  |-------------|-------------|
-  | `sentiment_score` | → **credit_score**（0-100，按 AAA~D 评分） |
-  | `operation_advice` | → **信用建议**：扩大额度 / 维持额度 / 缩减额度 / 停止赊销 |
-  | `decision_type` | → **信用决策类型**：`expand`（扩大）/ `maintain`（维持）/ `reduce`（缩减）/ `terminate`（终止） |
-  | `buy_reason` | → **信用支持依据**：支撑信用决策的核心财务论据 |
-  | `risk_warning` | → **信用风险警示**：最需要关注的 3-5 个风险点 |
-  | `analysis_summary` | → **信用分析摘要**：一句话总结信用质量 |
-  | `fundamental_analysis` | → **财务分析**：深度拆解资产负债、利润、现金流 |
-  | `sector_position` | → **行业信用地位**：在行业中的信用等级定位 |
-  | `technical_analysis` | → **信用趋势分析**：DSO/CEI/流动比率的历史趋势 |
-
-  **特别说明**：
-  - `battle_plan.sniper_points.stop_loss` → 信用额度缩减触发条件（如：DSO 连续上升超过 X 天、EBIT 下降超过 Y%）
-  - `risk_alerts` → 信用风险预警（至少 3 条具体可操作的风险项）
-  - `core_conclusion.one_sentence` → 一句话信用结论（如："伊利股份信用质量 AAA，建议维持当前额度并可考虑适度增加短期授信"）
-  - `core_conclusion.position_advice` → 信用管理建议（`has_position`=有信用往来时 / `no_position`=新客户评估时）
-  - `action_checklist` → 信用管理操作清单
+  - **AAA / AA（85-100）**：信用质量极高。建议：扩大额度、优惠条款
+  - **A / BBB（70-84）**：信用质量良好。建议：维持现有额度，可适度增加
+  - **BB / B（50-69）**：信用质量一般。建议：维持额度、加强监控
+  - **CCC / CC（30-49）**：信用质量差。建议：缩减额度、缩短账期
+  - **D（0-29）**：违约或接近违约。建议：停止赊销、立即催收
 
   ---
+
+  ### 输出格式说明
+
+  输出 JSON 字段使用新的信用分析命名，不再使用交易框架字段名：
+
+  | 信用字段 | 说明 |
+  |---------|------|
+  | `credit_decision` | 信用决策：`expand`/`maintain`/`reduce`/`terminate` |
+  | `credit_score` | 信用评分 0-100 |
+  | `credit_rating` | 信用等级 AAA~D |
+  | `financial_health` | 财务健康度（杠杆/流动性/盈利质量/现金流/回款） |
+  | `credit_management.limit_triggers` | 额度触发条件（增额/缩减/退出） |
+  | `credit_basis` | 信用支持依据 |
+  | `risk_signals` | 风险信号（风险警报/积极因素/关注事项） |
 
   ### 信用特有分析字段
 
-  在分析中务必包含以下信用特有指标（调用 `get_financials` 或 `get_credit_ratios` 获取数据）：
+  在分析中务必包含以下信用特有指标（如果数据可用）：
 
-  1. **DSO 分析**：
-     - 当前 DSO 天数
-     - 同比变化
-     - 与行业基准的比较
-
-  2. **流动性缺口分析**：
-     - 短债覆盖率（流动资产/短期借款）
-     - 未来 12 个月到期债务
-
-  3. **现金流健康度**：
-     - 自由现金流/总债务
-     - 经营现金流利息覆盖倍数
-
-  4. **股东背景与支持**：
-     - 国有/民营/外资
-     - 股东质押比例（如有数据）
-     - 母公司支持意愿和能力的推断
+  1. **DSO 分析**：当前 DSO 天数、同比变化、与行业基准比较
+  2. **流动性缺口分析**：短债覆盖率、未来债务到期
+  3. **现金流健康度**：自由现金流/总债务、经营现金流利息覆盖倍数
+  4. **股东背景与支持**：国有/民营/外资、股东质押比例、母公司支持能力
