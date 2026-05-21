@@ -1,0 +1,106 @@
+# Credit Analysis Workflow
+# Daily automated credit risk assessment for monitored stocks.
+# Uses DSA's data pipeline with credit_analysis skill activated.
+
+name: 每日信用分析
+
+on:
+  # Schedule: workdays at 10:30 Beijing time (UTC 02:30)
+  schedule:
+    - cron: '30 2 * * 1-5'
+
+  # Manual trigger
+  workflow_dispatch:
+
+# Concurrency: only one run at a time
+concurrency:
+  group: credit-analysis
+  cancel-in-progress: false
+
+jobs:
+  credit-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: ⏳ Startup delay
+        run: sleep $((RANDOM % 30))
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare directories
+        run: |
+          mkdir -p data logs reports
+
+      - name: Run credit analysis
+        env:
+          # ==========================================
+          # Core: enable agent mode with credit skill
+          # ==========================================
+          AGENT_MODE: "true"
+          AGENT_SKILLS: "credit_analysis"
+
+          # AI Provider (reuse existing secrets)
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          LLM_PRIMARY_PROTOCOL: ${{ secrets.LLM_PRIMARY_PROTOCOL || vars.LLM_PRIMARY_PROTOCOL }}
+          LLM_PRIMARY_BASE_URL: ${{ secrets.LLM_PRIMARY_BASE_URL || vars.LLM_PRIMARY_BASE_URL }}
+          LLM_PRIMARY_API_KEY: ${{ secrets.LLM_PRIMARY_API_KEY }}
+          LLM_PRIMARY_MODELS: ${{ secrets.LLM_PRIMARY_MODELS || vars.LLM_PRIMARY_MODELS }}
+
+          # Data sources
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+
+          # Stock list to analyze
+          STOCK_LIST: ${{ secrets.STOCK_LIST }}
+
+        run: |
+          echo "=========================================="
+          echo "📊 信用分析扫描开始"
+          echo "模式: Agent Mode + credit_analysis Skill"
+          echo "环境: ${{ runner.os }}"
+          echo "=========================================="
+
+          # Validate config
+          echo "Checking configuration..."
+          python -c "
+import os
+checks = {
+    'Agent Mode': os.getenv('AGENT_MODE'),
+    'Credit Skill': os.getenv('AGENT_SKILLS'),
+    'DeepSeek Key': '✅' if os.getenv('DEEPSEEK_API_KEY') else '❌',
+    'Tushare Token': '✅' if os.getenv('TUSHARE_TOKEN') else '❌',
+    'STOCK_LIST': '✅' if os.getenv('STOCK_LIST') else '⚠️ 未配置',
+}
+for k, v in checks.items():
+    print(f'  {k}: {v}')
+"
+          # Run with credit mode (no trading-day check for credit scanning)
+          python main.py --no-market-review
+
+      - name: Upload credit reports
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: credit-reports-${{ github.run_number }}
+          path: |
+            reports/
+            logs/
+          retention-days: 60
+
+      - name: Notify (WeCom / email)
+        if: always()
+        run: |
+          echo "✅ 信用分析完成"
+          echo "请查看 Artifacts 下载完整报告"
