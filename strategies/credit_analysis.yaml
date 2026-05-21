@@ -10,6 +10,9 @@ core_rules: [5, 6, 7]
 required_tools:
   - get_daily_history
   - analyze_trend
+  - get_financials          # ← 新增
+  - batch_financials        # ← 新增
+  - get_credit_ratios       # ← 新增
 aliases: [信用, 信用分析, 信控, credit]
 default_active: false
 default_router: false
